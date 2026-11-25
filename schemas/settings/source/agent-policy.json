@@ -562,6 +562,7 @@
         "experiments.menuStyleV2",
         "experiments.menuRowStates",
         "experiments.composerHatGroups",
+        "experiments.forumCallCard",
         "experiments.toastsV2",
         "experiments.foldSummaryCounts",
         "experiments.cloudDiskBar",

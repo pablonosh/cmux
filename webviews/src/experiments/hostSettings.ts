@@ -35,6 +35,7 @@ export const SETTING_OFF_ARMS: Readonly<Record<string, SettingArmEntry>> = {
     { experiment: "subagent-tray-fold-head", arm: "tally" },
     { experiment: "subagent-tray-column", arm: "chip" },
   ],
+  forumCallCard: { experiment: "forum-call-card", arm: "card" },
 };
 
 function armsFor(entry: SettingArmEntry): readonly SettingArm[] {
