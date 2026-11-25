@@ -43,6 +43,48 @@ import Testing
         #expect(rows.map { $0.1 } == [0, 1, 0])
     }
 
+    @Test func agentStartedRowsHideByDefaultButSelectionAndNeedsYouStayVisible() {
+        let helper = WorkspaceID("ws-helper")
+        let ids: [WorkspaceID?] = [Self.chief, Self.lane, helper, Self.other]
+        let workspaces = ids.map { id in id.map { SidebarWorkspace(id: $0, title: $0.rawValue) } }
+        let state = SidebarSessionTreeState(parents: [Self.lane: Self.chief, helper: Self.lane], hidesStarted: true)
+        let rows = { (state: SidebarSessionTreeState) in
+            SidebarLayout.treeRows(ids, workspace: { workspaces[$0] }, tree: state, filtering: false)
+        }
+
+        #expect(rows(state).map(\.index) == [0, 3], "idle agent-started rows are hidden")
+
+        var selected = state
+        selected.keeps = [helper]
+        #expect(rows(selected).map(\.index) == [0, 1, 2, 3], "a selected helper keeps its ancestor chain")
+
+        var blocked = state
+        blocked.states[helper] = .blocked
+        #expect(rows(blocked).map(\.index) == [0, 1, 2, 3], "a helper waiting on the person stays visible")
+    }
+
+    @Test func showAgentSessionsToggleControlsNestingWithoutChangingLineage() {
+        let defaults = UserDefaults(suiteName: "sidebar-agent-sessions-\(UUID().uuidString)")!
+        let tree = SidebarSessionTree(defaults: defaults, showsStarted: false)
+        tree.state = SidebarSessionTreeState(parents: [Self.lane: Self.chief])
+        #expect(tree.drawn?.hidesStarted == true)
+        #expect(tree.drawn?.parents == [Self.lane: Self.chief])
+
+        tree.showsStartedOverride = true
+        #expect(tree.drawn?.hidesStarted == false)
+        #expect(tree.drawn?.parents == [Self.lane: Self.chief])
+    }
+
+    @Test func aBlockedTransitionIsTheOnlyHiddenRowStatePatch() {
+        let tree = SidebarSessionTreeState(parents: [Self.lane: Self.chief], hidesStarted: true)
+        let idle = SidebarWorkspace(id: Self.lane, title: "lane")
+        var blocked = idle
+        blocked.activity = .waiting
+        #expect(!tree.patchChangesHidden(from: idle, to: idle))
+        #expect(tree.patchChangesHidden(from: idle, to: blocked))
+        #expect(tree.patchChangesHidden(from: nil, to: blocked))
+    }
+
     @Test func treeOrderLeavesCyclesAndOtherListsAlone() {
         let a = WorkspaceID("a"), b = WorkspaceID("b"), d = WorkspaceID("d"), far = WorkspaceID("far")
         // d's parent is in another list: d stays a root. (Depth: SidebarDeepTreeTests.)

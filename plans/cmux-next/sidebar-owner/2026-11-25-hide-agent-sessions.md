@@ -1,0 +1,1 @@
+- 2026-11-25 (lane/sidebar-root-fix-codex-v2, ask-99d5bc5e6d): Sidebar-Look: Leo, 2026-11-25: "idk who asked for those in teh sidebar. it's weird". Agent-started helper sessions stay out of the sidebar by default, while selected and needs-you sessions retain their rows and the regular Settings toggle restores the full nesting.
