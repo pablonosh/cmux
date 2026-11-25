@@ -40,9 +40,8 @@ test("an agent the Cloud machine does not carry starts the machine's default, un
 // Mac's own profiles or a folder's, each pickable whatever this Mac has installed; its last row opens
 // Settings > Cloud.
 test("the Cloud picker lists the machine's agents only, and its set-up row opens Settings > Cloud", async () => {
-  const { cloudPickerEntries, pickerOnCloud, openCloudSettings } = await import(
-    "../src/agent-session/acpmux/cloudPickerEntries"
-  );
+  const { cloudPickerEntries, pickerOnCloud, openCloudSettings } =
+    await import("../src/agent-session/acpmux/cloudPickerEntries");
   const entry = (id: string, extra: Record<string, unknown> = {}) => ({ id, name: id, models: [], ...extra });
   const shown = cloudPickerEntries([
     entry("claude"),

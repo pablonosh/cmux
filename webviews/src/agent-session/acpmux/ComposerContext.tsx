@@ -1204,7 +1204,7 @@ export function ComposerContext({
             layout === "combined" ? (
               <EnvironmentPicker
                 {...pickerProps}
-                label={t(CONTEXT_LABELS.environment)}
+                label={t("composer.computer")}
                 menu="Computer"
                 value={
                   autoPicked
@@ -1238,7 +1238,7 @@ export function ComposerContext({
             ) : layout === "cloud-toggle" ? (
               <EnvironmentPicker
                 {...pickerProps}
-                label={t(CONTEXT_LABELS.environment)}
+                label={t("composer.computer")}
                 menu="Computer"
                 value={machineValue}
                 face={machineFace}
@@ -1249,7 +1249,7 @@ export function ComposerContext({
               <>
                 <EnvironmentPicker
                   {...pickerProps}
-                  label={t(CONTEXT_LABELS.environment)}
+                  label={t("composer.computer")}
                   menu="Computer"
                   value={wherePlace}
                   face={

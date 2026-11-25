@@ -57,7 +57,13 @@ import { INSTALL_COMMANDS } from "./harnesses/harnessRows";
 import { installProgress, plainInstallFailure } from "./harnesses/installRetry";
 import { postNative } from "./native";
 import { rememberPick } from "./lastPick";
-import { cloudPickerEntries, cloudSignedOut, openCloudSettings, pickerOnCloud, useCloudFamilies } from "./cloudPickerEntries";
+import {
+  cloudPickerEntries,
+  cloudSignedOut,
+  openCloudSettings,
+  pickerOnCloud,
+  useCloudFamilies,
+} from "./cloudPickerEntries";
 import { dropHandedCloudStart, handCloudStart, handoffStore } from "./commandPlace";
 import { defaultModel } from "./harnessSwitch";
 import { catalogRow } from "./catalogRow";
@@ -292,8 +298,7 @@ export function ComposerPickers({
   const cloudSetUpNeeded = onCloud ? cloudSignedOut(pickerEntries, cloudFamilies.families) : undefined;
   // Installed launch configurations are separate from route-backed accounts in the model menu; a
   // Cloud machine has none of them.
-  const profiles =
-    pickerCatalog && !onCloud ? catalogProfiles(snapshot.catalog, pickerCatalog.harnesses) : undefined;
+  const profiles = pickerCatalog && !onCloud ? catalogProfiles(snapshot.catalog, pickerCatalog.harnesses) : undefined;
   const switchHarness = cloudSwitch
     ? (picked: string, pickedModel?: string) => {
         if (picked === summary?.harness) return;
@@ -1404,7 +1409,10 @@ export function ComposerPickers({
           // On Cloud this Mac's sign-in says nothing: the machine runs on a connection that serves Cloud. A
           // family with none lists as signed out, and its button runs Cloud's own set up (cloudPickerEntries.ts).
           {...(cloudSetUpNeeded
-            ? { signedOut: pickableSignedOut(cloudSetUpNeeded, summary), onLogIn: (_harness: string, family: string) => cloudFamilies.setUp(family) }
+            ? {
+                signedOut: pickableSignedOut(cloudSetUpNeeded, summary),
+                onLogIn: (_harness: string, family: string) => cloudFamilies.setUp(family),
+              }
             : signIn
               ? { signedOut: pickableSignedOut(signIn.signedOut, summary), onLogIn: signIn.logIn }
               : {})}

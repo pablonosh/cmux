@@ -8,16 +8,18 @@ import type { SchemaRow } from "./schema";
 const restore = installDom();
 afterAll(() => restore());
 const { renderCard, changeValue, ops } = await import("./testing");
-const { DefaultImageEditor, defaultImageOptions, defaultImageStatus, DEFAULT_IMAGE_KEY } = await import(
-  "./editors/DefaultImageEditor"
-);
+const { DefaultImageEditor, defaultImageOptions, defaultImageStatus, DEFAULT_IMAGE_KEY } =
+  await import("./editors/DefaultImageEditor");
 
 const row = { key: DEFAULT_IMAGE_KEY, kind: "text", default: "auto" } as unknown as SchemaRow;
 const WEB = "env_00000000000000000001";
 const API = "env_00000000000000000002";
 
 const options = (container: HTMLElement) =>
-  [...container.querySelectorAll<HTMLOptionElement>("select option")].map((option) => [option.value, option.textContent]);
+  [...container.querySelectorAll<HTMLOptionElement>("select option")].map((option) => [
+    option.value,
+    option.textContent,
+  ]);
 
 test("the menu lists Auto then each environment, with Auto selected by default", async () => {
   const page = await renderCard(<DefaultImageEditor row={row} value="auto" disabled={false} labelId="image" />);

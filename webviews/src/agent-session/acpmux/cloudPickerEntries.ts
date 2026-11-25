@@ -23,9 +23,7 @@ type Entry = ModelPickerProps["catalog"][number];
 /** True when the composer's chat starts on, or runs on, a Cloud machine. */
 export function pickerOnCloud(snapshot: AcpmuxSnapshot): boolean {
   return (
-    snapshot.startsOnCloud === true ||
-    snapshot.summary?.hostKind === "cloud" ||
-    routeOnOwnCloud(chatPlace(snapshot))
+    snapshot.startsOnCloud === true || snapshot.summary?.hostKind === "cloud" || routeOnOwnCloud(chatPlace(snapshot))
   );
 }
 
@@ -42,7 +40,9 @@ export function cloudPickerEntries(entries: readonly Entry[]): Entry[] {
 
 /** Opens Settings > Cloud: the app's Open Settings on its Cloud page (AgentPaneModel+Actions.swift
  *  `settingsActions`), on the person's click. */
-export function openCloudSettings(post: (method: string, params: Record<string, unknown>) => Promise<unknown> = postNative): void {
+export function openCloudSettings(
+  post: (method: string, params: Record<string, unknown>) => Promise<unknown> = postNative,
+): void {
   void post("action.run", { id: "openSettings" }).catch(() => undefined);
 }
 
@@ -110,12 +110,6 @@ export function useCloudFamilies(
     };
   }, [onCloud, reads, post]);
   const reread = useCallback(() => setReads((count) => count + 1), []);
-  // A set up finished elsewhere (Settings > Cloud, a browser sign-in) shows when the person comes back.
-  useEffect(() => {
-    if (!onCloud || typeof window === "undefined") return;
-    window.addEventListener("focus", reread);
-    return () => window.removeEventListener("focus", reread);
-  }, [onCloud, reread]);
   const setUp = useCallback(
     (family: string) => {
       if (family !== "claude" && family !== "codex") return;

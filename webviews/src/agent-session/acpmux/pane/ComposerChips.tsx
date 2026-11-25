@@ -79,7 +79,7 @@ function PickerChips({
       ? {
           ...snapshot,
           summary: {
-            ...(snapshot.summary ?? {}),
+            ...snapshot.summary,
             harness: cloudPick.harness,
             model:
               cloudPick.model ??

@@ -16,7 +16,10 @@ const env = (id: string, name: string, scope: "personal" | "team", isDefault: bo
   updated_at: "1",
   updated_by: "u",
 });
-const environments = [env("env_default", "Default", "personal", true), env("env_gpu", "GPU training", "personal", false)];
+const environments = [
+  env("env_default", "Default", "personal", true),
+  env("env_gpu", "GPU training", "personal", false),
+];
 
 test("a Cloud start names its own environment, else the pick; Auto names none", async () => {
   const choice = await import("../src/agent-session/acpmux/cloudEnvironmentChoice");

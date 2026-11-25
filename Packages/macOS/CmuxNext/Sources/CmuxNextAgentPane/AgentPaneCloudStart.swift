@@ -3,6 +3,7 @@ import CmuxNextCompat
 public import CmuxNextSettings
 public import Foundation
 import os
+import CmuxNextWakeups
 
 /// `cloud.startChat {task, cwd?, harness?, model?, mode?, effort?, account?, key}`: a new chat's first send with Cloud picked
 /// as where it runs (the environment picker's Cloud row, Labs). The App picks or makes a Cloud
@@ -469,8 +470,8 @@ extension AgentPaneModel {
         pickerSetUpWait?.cancel() // a newer click replaces it
         let wait = Task { await run(way, family) }
         pickerSetUpWait = wait
-        let limit = Self.pickerSetUpLimit
-        let deadline = Task { try? await Task.sleep(for: limit); wait.cancel() }
+        let deadline = DemandTimer(owner: "agent-pane-picker-cloud-set-up")
+        deadline.schedule(after: Self.pickerSetUpLimit) { wait.cancel() }
         let ready = await wait.value
         deadline.cancel()
         if pickerSetUpWait == wait { pickerSetUpWait = nil }
