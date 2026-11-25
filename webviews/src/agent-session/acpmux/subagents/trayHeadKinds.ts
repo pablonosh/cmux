@@ -333,7 +333,7 @@ export function trayHeadGroups(
   const background: TrayItem[] = [];
   const waits: TrayItem[] = [];
   for (const item of items) {
-    if (item.kind === "command") background.push(item);
+    if (item.kind === "command" || item.kind === "turn") background.push(item);
     else if (
       item.kind === "agent" ? subagentStatus(item.agent, waiting) === "waiting" : item.session.state === "waiting"
     )
@@ -348,7 +348,9 @@ export function trayHeadGroups(
           ? item.session.state === "failed"
             ? "failed"
             : undefined
-          : commandStatus(item.command)) === "failed",
+          : item.kind === "command"
+            ? commandStatus(item.command)
+            : undefined) === "failed",
   );
   const parts: TrayHeadPart[] = [];
   if (agents.length > 0) {
