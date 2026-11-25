@@ -397,6 +397,27 @@ async fn wireguard_falls_back_from_turn_udp_to_turn_tls() {
     eprintln!("UDP-blocked fallback run took {:?}", started.elapsed());
 }
 
+/// A service can advertise more than one stream TURN endpoint at the same
+/// rank. If the preferred listener is unreachable, a UDP-blocked phone tries
+/// the next TLS endpoint within the same stream allocation budget.
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn wireguard_falls_back_to_second_turn_stream_when_preferred_relay_is_unreachable() {
+    let turn = TestTurn::start().await;
+    turn.set_udp_blocked(true);
+    let mut ice = turn.ice.clone();
+    ice.urls.insert(1, "turns:127.0.0.1:9?transport=tcp".into());
+    let phone = DialOptions {
+        ice_servers: vec![ice],
+        relay_only: true,
+        turn_tls_roots: Some(std::sync::Arc::clone(&turn.roots)),
+        ..options()
+    };
+    let run = exercise_turn(phone, options()).await;
+    assert_eq!(run.phone, LinkPath::TurnTls, "{run:?}");
+    assert_eq!(run.mac, Some(LinkPath::TurnTls), "{run:?}");
+    assert_eq!(turn.stream_connections(), 1, "the working TLS endpoint should be the only accepted stream");
+}
+
 /// The Mac's network blocks UDP (STUN never answers, here simulated by
 /// `block_udp`): the Mac takes its own TURN allocation over TLS and lists it
 /// in `wg-resp`; the phone reaches it with plain UDP.
