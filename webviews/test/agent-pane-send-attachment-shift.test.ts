@@ -22,6 +22,8 @@ import { COMPOSER_EDITOR } from "../src/agent-session/acpmux/composerSelectors";
 type Frame = {
   t: number;
   bubble: { top: number; height: number } | null;
+  /// The live Thinking line's top, in view coordinates.
+  thinking: number | null;
   rows: number;
   scrollTop: number;
   /// The rows drawn under the sent bubble, by id.
@@ -145,10 +147,12 @@ await requireBrowserLane("agent-pane-send-attachment-shift.test.ts", async () =>
         const bubble = bubbles.at(-1)?.closest<HTMLElement>("[data-row-id]") ?? null;
         const box = bubble?.getBoundingClientRect();
         const below = bubble ? rows.slice(rows.indexOf(bubble) + 1).map((row) => row.dataset.rowId ?? "?") : [];
+        const line = document.querySelector<HTMLElement>('[data-row-id="thinking-live"]')?.getBoundingClientRect();
         const scroller = document.querySelector<HTMLElement>(".acpmux-transcript-scroll, [data-transcript-scroll]");
         w.__frames.push({
           t: performance.now(),
           bubble: box ? { top: Math.round(box.top * 10) / 10, height: Math.round(box.height * 10) / 10 } : null,
+          thinking: line ? Math.round((line.top - (box?.top ?? 0)) * 10) / 10 : null,
           rows: rows.length,
           scrollTop: scroller?.scrollTop ?? -1,
           below,
@@ -208,6 +212,9 @@ await requireBrowserLane("agent-pane-send-attachment-shift.test.ts", async () =>
     let moved = 0;
     let jumps = 0;
     let grew = 0;
+    // The Thinking line under the bubble (its top less the bubble's): the heading coming in over it later pushes it.
+    let linePushed = 0;
+    const lists = new Set<string>();
     const lines: string[] = [];
     let before: Frame | undefined;
     let belowBefore = "";
@@ -218,6 +225,16 @@ await requireBrowserLane("agent-pane-send-attachment-shift.test.ts", async () =>
           `  +${Math.round(frame.t - sentAt)}ms under the bubble: ${belowNow || "nothing"} (top ${frame.bubble?.top})`,
         );
       belowBefore = belowNow;
+      if (frame.t > sentAt + SETTLE_MS && frame.below.length) lists.add(belowNow);
+      if (frame.t > sentAt + SETTLE_MS && frame.thinking !== null && before?.thinking != null) {
+        const dl = frame.thinking - before.thinking;
+        if (Math.abs(dl) >= 1) {
+          linePushed += Math.abs(dl);
+          lines.push(
+            `  +${Math.round(frame.t - sentAt)}ms Thinking line ${before.thinking}->${frame.thinking} under the bubble`,
+          );
+        }
+      }
       if (frame.bubble && before?.bubble && frame.t - sentAt > SETTLE_MS) {
         const dy = frame.bubble.top - before.bubble.top;
         const dh = frame.bubble.height - before.bubble.height;
@@ -232,6 +249,17 @@ await requireBrowserLane("agent-pane-send-attachment-shift.test.ts", async () =>
       }
       before = frame;
     }
+    // The row right under the bubble, over the whole turn: the turn's heading stands there from the send. A
+    // heading that comes in at the first call takes the Thinking line's place and pushes it and all under it.
+    const heads: string[] = [];
+    // And the Thinking line's place under the bubble over the whole turn (the work folds under the heading).
+    const linePlaces: number[] = [];
+    for (const frame of frames) {
+      if (frame.t < sentAt) continue;
+      if (frame.thinking !== null && frame.thinking !== linePlaces.at(-1)) linePlaces.push(frame.thinking);
+      const head = frame.below.find((id) => !id.startsWith("date"));
+      if (head && head !== heads.at(-1)) heads.push(head);
+    }
     const end = opened.at(-1)?.t ?? sentAt;
     const inOpening = shifts.filter((shift) => shift.at >= sentAt && shift.at <= end);
     const cls = clsOf(inOpening);
@@ -242,6 +270,10 @@ await requireBrowserLane("agent-pane-send-attachment-shift.test.ts", async () =>
       bubbleMovedPx: Math.round(moved),
       bubbleResizedPx: Math.round(grew),
       bubbleMoves: jumps,
+      thinkingPushedPx: Math.round(linePushed),
+      rowsUnderBubble: [...lists],
+      thinkingPlaces: linePlaces,
+      rowUnderBubble: heads.map((id) => id.replace(/local-[0-9a-f-]+|user-\d+/, "PROMPT")),
       openingMs: Math.round((opened.at(-1)?.t ?? sentAt) - sentAt),
     };
     console.log(`SEND_ATTACHMENT_SHIFT ${JSON.stringify(report)}`);
@@ -257,14 +289,22 @@ await requireBrowserLane("agent-pane-send-attachment-shift.test.ts", async () =>
 
   test("a wide screenshot sent on idle: the bubble lands once and holds while the turn opens", async () => {
     const report = await sendWithImage(1432, 198);
+    expect(report.rowUnderBubble).toEqual(["worked-PROMPT"]);
     expect(report.bubbleMovedPx).toBe(0);
+    expect(report.thinkingPushedPx).toBe(0);
+    // From the send on, the heading and the line stand under the bubble: one set of rows until the turn's work.
+    expect(report.rowsUnderBubble.length).toBe(1);
     expect(report.bubbleResizedPx).toBe(0);
     expect(report.cls).toBeLessThan(0.001);
   });
 
   test("a tall image sent on idle: the bubble lands once and holds while the turn opens", async () => {
     const report = await sendWithImage(600, 900);
+    expect(report.rowUnderBubble).toEqual(["worked-PROMPT"]);
     expect(report.bubbleMovedPx).toBe(0);
+    expect(report.thinkingPushedPx).toBe(0);
+    // From the send on, the heading and the line stand under the bubble: one set of rows until the turn's work.
+    expect(report.rowsUnderBubble.length).toBe(1);
     expect(report.bubbleResizedPx).toBe(0);
     expect(report.cls).toBeLessThan(0.001);
   });
