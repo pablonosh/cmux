@@ -185,10 +185,24 @@ jobs:
         with:
           # `vp check` and Vitest 5 need Node ^22.18 or ^24.11.
           node-version: "24.22.1"
-          cache: npm
-          cache-dependency-path: |
-            cmux-tui/bindings/typescript/package-lock.json
-            cmux-tui/frontends/web/package-lock.json
+
+      - name: Cache the npm cache
+        if: ${{ (github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.npm
+          key: npm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/bindings/typescript/package-lock.json', 'cmux-tui/frontends/web/package-lock.json') }}
+
+      - name: Cache the npm cache (restore only off base branches)
+        if: ${{ !(github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.npm
+          key: npm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/bindings/typescript/package-lock.json', 'cmux-tui/frontends/web/package-lock.json') }}
 
       - name: Build TypeScript SDK
         working-directory: cmux-tui/bindings/typescript
@@ -254,7 +268,27 @@ jobs:
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: cmux-tui/bindings/go-pane/go.mod
-          cache-dependency-path: cmux-tui/bindings/go-pane/go.mod
+          cache: false
+
+      - name: Cache the Go modules and build cache
+        if: ${{ (steps.changes.outputs.run == 'true') && (github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go--${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/bindings/go-pane/go.mod') }}
+
+      - name: Cache the Go modules and build cache (restore only off base branches)
+        if: ${{ (steps.changes.outputs.run == 'true') && !(github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go--${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/bindings/go-pane/go.mod') }}
 
       - name: go test -race (runtime, example provider, conformance vectors)
         if: steps.changes.outputs.run == 'true'
@@ -820,8 +854,27 @@ jobs:
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
         with:
           go-version-file: cmux-tui/crates/cmux-tailnet/go-version
-          cache: ${{ !contains(runner.name, '-glaeda') }}
-          cache-dependency-path: cmux-tui/crates/cmux-tailnet/build.rs
+          cache: false
+
+      - name: Cache the Go modules and build cache
+        if: ${{ (github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go--${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/crates/cmux-tailnet/build.rs') }}
+
+      - name: Cache the Go modules and build cache (restore only off base branches)
+        if: ${{ !(github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+          key: go--${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/crates/cmux-tailnet/build.rs') }}
 
       # acpmux's web_image_attachments tests run a real `node` from the PATH
       # (tests/support/daemon_env.rs `host_tool`). The macOS runners have no
@@ -1575,6 +1628,7 @@ jobs:
       - name: Set up pinned Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
+          no-cache: ${{ !startsWith(github.workspace, '/home/runner/work/') || !(github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
           bun-version: "1.4.4"
 
       - name: Install pinned Playwright dependencies
@@ -1692,8 +1746,24 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
         with:
           node-version: "22.23.4"
-          cache: npm
-          cache-dependency-path: cmux-tui/bindings/typescript/package-lock.json
+
+      - name: Cache the npm cache
+        if: ${{ (github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.npm
+          key: npm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/bindings/typescript/package-lock.json') }}
+
+      - name: Cache the npm cache (restore only off base branches)
+        if: ${{ !(github.event_name != 'pull_request' && github.event_name != 'pull_request_target' && github.event_name != 'merge_group' && contains(fromJSON('["refs/heads/main","refs/heads/feat-cmux-next","refs/heads/nightly-next"]'), github.ref)) }}
+        continue-on-error: true
+        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.npm
+          key: npm-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('cmux-tui/bindings/typescript/package-lock.json') }}
 
       - name: Install TypeScript binding dependencies
         working-directory: cmux-tui/bindings/typescript
